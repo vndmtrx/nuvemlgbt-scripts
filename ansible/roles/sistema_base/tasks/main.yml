@@ -38,7 +38,7 @@
 - name: Criação de usuário para acesso ao cockpit
   user:
     name: mastodoncio
-    password: "{{ 'senha' | password_hash('sha512', 'saltbemcomplexo') }}"
+    password: "{{ 'semsenha' | password_hash('sha512', 'saltbemcomplexo') }}"
     groups: sudo
     append: true
     state: present
