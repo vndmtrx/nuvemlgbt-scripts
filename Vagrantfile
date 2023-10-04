@@ -13,6 +13,7 @@ MSG
 Vagrant.configure("2") do |vps|
   vps.vm.box = "debian/bullseye64"
   vps.vm.hostname = "nuvemlgbt-vagrant-docker"
+  vps.vm.network "forwarded_port", guest: 9090, host: 9090
   vps.vm.provider "virtualbox" do |v|
     v.memory = 4096
     v.cpus = 2
@@ -22,6 +23,7 @@ Vagrant.configure("2") do |vps|
 
   vps.vm.provision :"ansible" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
+    ansible.config_file = "ansible/.ansible.cfg"
   end
 
   vps.vm.post_up_message = $msg

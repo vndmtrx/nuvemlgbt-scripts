@@ -17,3 +17,32 @@
     - curl
     - gnupg2
     - software-properties-common
+
+- name: Instalação do cockpit e do plugin de métricas do cockpit
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - cockpit
+    - cockpit-pcp
+
+- name: Habilitação do socket do cockpit
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - cockpit.socket
+    - pmlogger.service
+
+- name: Criação de usuário para acesso ao cockpit
+  user:
+    name: mastodoncio
+    password: "{{ 'senha' | password_hash('sha512', 'saltbemcomplexo') }}"
+    groups: sudo
+    append: true
+    state: present
+    createhome: true
+    shell: /bin/bash
+    update_password: on_create
+  register: reg_usuario
