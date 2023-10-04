@@ -1,0 +1,34 @@
+---
+- name: Adiciona o grupo "mastodon" com o id especificado
+  ansible.builtin.group:
+    name: mastodon
+    state: present
+    gid: 991
+
+- name: Adiciona o usuário "mastodon" com o id especificado
+  ansible.builtin.user:
+    name: mastodon
+    uid: 991
+    group: mastodon
+
+- name: Cria as pastas necessárias para funcionamento do Mastodon
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: mastodon
+    group: mastodon
+    mode: 0755
+  with_items:
+    - "/opt/mastodon"
+    - "/opt/mastodon/docker"
+    - "/opt/mastodon/data"
+    - "/opt/mastodon/data/app"
+    - "/opt/mastodon/data/db"
+    - "/opt/mastodon/data/web"
+    - "/opt/mastodon/data/db/postgres"
+    - "/opt/mastodon/data/db/redis"
+    - "/opt/mastodon/data/db/elasticsearch"
+    - "/opt/mastodon/data/web/public"
+    - "/opt/mastodon/data/web/system"
+    - "/opt/mastodon/data/web/config"
+    - "/opt/mastodon/data/web/app"
