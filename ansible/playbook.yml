@@ -1,0 +1,7 @@
+---
+- name: Instalação dos projetos do server do NuvemLGBT
+  hosts: all
+  become: true
+  roles:
+    - sistema_base
+    - docker

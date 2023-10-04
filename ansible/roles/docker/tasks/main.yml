@@ -1,0 +1,6 @@
+---
+- name: Instala o repo do docker
+  import_tasks: docker_repo.yml
+
+- name: Instala o docker e o docker-compose
+  import_tasks: docker_setup.yml

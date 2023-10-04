@@ -1,0 +1,12 @@
+---
+- name: Adiciona a chave gpg do repo do docker
+  apt_key:
+    url: "{{ docker_apt_gpg_key }}"
+    state: present
+
+- name: Adiciona o repositório do docker
+  apt_repository:
+    repo: "{{ docker_apt_repository }}"
+    state: present
+    filename: docker-repo
+    update_cache: true

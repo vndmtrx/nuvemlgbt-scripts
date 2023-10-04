@@ -1,0 +1,19 @@
+---
+- name: Detalhes do sistema
+  debug:
+    msg:
+    - "Distro: {{ ansible_distribution }}"
+    - "Codinome: {{ ansible_distribution_release }}"
+    - "Versão: {{ ansible_distribution_version }}"
+
+- name: Instalação de pacotes base do sistema
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg2
+    - software-properties-common

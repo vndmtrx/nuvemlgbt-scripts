@@ -1,0 +1,18 @@
+---
+- name: Atualiza o apt e instala o docker e outras dependências
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: false
+  with_items:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
+
+- name: Executa e habilita o docker
+  service:
+    name: docker
+    state: started
+    enabled: true
