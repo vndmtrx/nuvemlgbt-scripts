@@ -1,6 +1,9 @@
 ---
-- name: Instala o repo do docker
-  import_tasks: docker_repo.yml
-
-- name: Instala o docker e o docker-compose
-  import_tasks: docker_setup.yml
+- name: Instalação do Docker
+  include_tasks: 
+    file: "{{ task }}"
+  with_items:
+    - docker_repo.yml
+    - docker_setup.yml
+  loop_control:
+    loop_var: task
