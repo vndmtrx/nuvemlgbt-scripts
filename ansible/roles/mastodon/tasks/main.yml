@@ -1,6 +1,6 @@
 ---
 - name: Instalação do Mastodon
-  include_tasks: 
+  ansible.builtin.include_tasks: 
     file: "{{ task }}"
   with_items:
     - masto_base.yml

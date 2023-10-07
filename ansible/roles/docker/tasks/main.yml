@@ -1,6 +1,6 @@
 ---
 - name: Instalação do Docker
-  include_tasks: 
+  ansible.builtin.include_tasks: 
     file: "{{ task }}"
   with_items:
     - docker_repo.yml

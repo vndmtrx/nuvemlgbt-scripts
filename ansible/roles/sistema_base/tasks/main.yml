@@ -1,13 +1,13 @@
 ---
 - name: Detalhes do sistema
-  debug:
+  ansible.builtin.debug:
     msg:
     - "Distro: {{ ansible_distribution }}"
     - "Codinome: {{ ansible_distribution_release }}"
     - "Versão: {{ ansible_distribution_version }}"
 
 - name: Instalação de pacotes base do sistema
-  apt:
+  ansible.builtin.apt:
     name: "{{ item }}"
     state: present
     update_cache: yes
@@ -19,7 +19,7 @@
     - software-properties-common
 
 - name: Instalação do cockpit e do plugin de métricas do cockpit
-  apt:
+  ansible.builtin.apt:
     name: "{{ item }}"
     state: latest
   with_items:
@@ -27,7 +27,7 @@
     - cockpit-pcp
 
 - name: Habilitação do socket do cockpit
-  systemd:
+  ansible.builtin.service:
     name: "{{ item }}"
     state: started
     enabled: true
@@ -36,7 +36,7 @@
     - pmlogger.service
 
 - name: Criação de usuário para acesso ao cockpit
-  user:
+  ansible.builtin.user:
     name: mastodoncio
     password: "{{ 'semsenha' | password_hash('sha512', 'saltbemcomplexo') }}"
     groups: sudo

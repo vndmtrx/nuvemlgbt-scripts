@@ -1,6 +1,6 @@
 ---
 - name: Atualiza o apt e instala o docker e outras dependências
-  apt:
+  ansible.builtin.apt:
     name: "{{ item }}"
     state: present
     update_cache: false
@@ -12,7 +12,7 @@
     - docker-compose-plugin
 
 - name: Executa e habilita o docker
-  service:
+  ansible.builtin.service:
     name: docker
     state: started
     enabled: true
