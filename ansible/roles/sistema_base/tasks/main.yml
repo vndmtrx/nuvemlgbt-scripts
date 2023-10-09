@@ -38,6 +38,7 @@
 - name: Criação de usuário para acesso ao cockpit
   ansible.builtin.user:
     name: mastodoncio
+    uid: 1010
     password: "{{ 'semsenha' | password_hash('sha512', 'saltbemcomplexo') }}"
     groups: sudo
     append: true

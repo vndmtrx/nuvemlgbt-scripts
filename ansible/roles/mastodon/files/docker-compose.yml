@@ -1,0 +1,217 @@
+version: '3'
+name: mastodon
+services:
+  postgresql:
+    image: "docker.io/bitnami/postgresql:${POSTGRESQL_VERSION}"
+    container_name: mastodon_postgresql
+    restart: always
+    env_file: 
+      - database.env
+      - versions.env
+    shm_size: 256mb
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'mastodon']
+    volumes:
+      - postgresql:/bitnami/postgresql
+    networks:
+      - internal_network
+    environment:
+      - 'POSTGRES_HOST_AUTH_METHOD=trust'
+
+  redis:
+    image: "docker.io/bitnami/redis:${REDIS_VERSION}"
+    container_name: mastodon_redis
+    restart: always
+    env_file: 
+      - database.env
+      - versions.env
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+    volumes:
+      - redis:/bitnami/redis/data
+    networks:
+      - internal_network
+    environment:
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+
+  redis-volatile:
+    image: "docker.io/bitnami/redis:${REDIS_VERSION}"
+    container_name: mastodon_redis_cache
+    restart: always
+    env_file: 
+      - database.env
+      - versions.env
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+    networks:
+      - internal_network
+    environment:
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+
+  elasticsearch:
+    image: "docker.io/bitnami/elasticsearch:${ELASTICSEARCH_VERSION}"
+    container_name: mastodon_elastisearch
+    restart: always
+    env_file: 
+      - database.env
+      - versions.env
+    environment:
+      - cluster.name=elasticsearch-mastodon
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - ingest.geoip.downloader.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z elasticsearch 9200"]
+    volumes:
+      - elasticsearch:/bitnami/elasticsearch/data
+    networks:
+      - internal_network
+
+  website:
+    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    container_name: mastodon_website
+    env_file: 
+      - application.env
+      - database.env
+      - versions.env
+    command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
+    restart: always    
+    depends_on:
+      - postgresql
+      - redis
+      - redis-volatile
+    ports:
+      - '3000:3000'
+    networks:
+      - internal_network
+      - external_network
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:3000/health || exit 1']
+    volumes:
+      - public:/opt/mastodon/public
+      - uploads:/opt/mastodon/public/system
+      - app:/opt/mastodon/app
+      - config:/opt/mastodon/config
+       
+  streaming:
+    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    container_name: mastodon_streaming
+    env_file: 
+      - application.env
+      - database.env
+      - versions.env
+    command: node ./streaming
+    environment:
+      - DB_POOL=4
+    restart: always
+    depends_on:
+      - postgresql
+      - redis
+      - redis-volatile
+    ports:
+      - '4000:4000'
+    networks:
+      - internal_network
+      - external_network
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1']
+    volumes:
+      - public:/opt/mastodon/public
+      - uploads:/opt/mastodon/public/system
+      - app:/opt/mastodon/app
+      - config:/opt/mastodon/config
+
+  sidekiq:
+    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    container_name: mastodon_sidekiq
+    env_file: 
+      - application.env
+      - database.env
+      - versions.env
+    restart: always
+    depends_on:
+      - postgresql
+      - redis
+      - redis-volatile
+      - website
+    networks:
+      - internal_network
+      - external_network
+    environment:
+      - DB_POOL=18
+    healthcheck:
+      test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
+    command: bundle exec sidekiq -c 18
+    volumes:
+      - public:/opt/mastodon/public
+      - uploads:/opt/mastodon/public/system
+      - app:/opt/mastodon/app
+      - config:/opt/mastodon/config
+
+  shell:
+    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    env_file: 
+      - application.env
+      - database.env
+      - versions.env
+    command: /bin/bash 
+    restart: "no"
+    depends_on:
+      - postgresql
+      - redis
+      - redis-volatile
+    networks:
+      - internal_network
+      - external_network
+    volumes:
+      - public:/opt/mastodon/public
+      - uploads:/opt/mastodon/public/system
+      - app:/opt/mastodon/app
+      - config:/opt/mastodon/config
+
+networks:
+  external_network:
+  internal_network:
+    internal: true
+
+volumes:
+  postgresql:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/db/postgres
+      o: bind    
+  redis:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/db/redis
+      o: bind    
+  elasticsearch:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/db/elasticsearch
+      o: bind    
+  uploads:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/web/system
+      o: bind
+  app:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/web/app
+      o: bind
+  config:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/web/config
+      o: bind
+  public:
+    driver_opts:
+      type: none
+      device: /opt/mastodon/data/web/public
+      o: bind

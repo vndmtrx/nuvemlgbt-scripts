@@ -3,12 +3,12 @@
   ansible.builtin.group:
     name: mastodon
     state: present
-    gid: 991
+    gid: 1001
 
 - name: Adiciona o usuário "mastodon" com o id especificado
   ansible.builtin.user:
     name: mastodon
-    uid: 991
+    uid: 1001
     group: mastodon
 
 - name: Cria as pastas necessárias para funcionamento do Mastodon
@@ -17,7 +17,6 @@
     state: directory
     owner: mastodon
     group: mastodon
-    recurse: Yes
     mode: 0755
   with_items:
     - "/opt/mastodon"
@@ -33,3 +32,120 @@
     - "/opt/mastodon/data/web/system"
     - "/opt/mastodon/data/web/config"
     - "/opt/mastodon/data/web/app"
+
+- name: Copia os arquivos necessários para subir a estrutura do Mastodon em contêineres
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/mastodon/docker/{{ item }}"
+    owner: mastodon
+    group: mastodon
+    mode: 0644
+  with_items:
+    - docker-compose.yml
+    - application.env
+    - database.env
+    - versions.env
+
+- name: Cria um link de version.env para .env
+  ansible.builtin.file:
+    src: /opt/mastodon/docker/versions.env
+    dest: /opt/mastodon/docker/.env
+    owner: mastodon
+    group: mastodon
+    mode: 0644
+    state: link
+
+- name: Faz o pull das imagens do docker-compose.yml
+  ansible.builtin.command:
+    cmd: docker compose pull
+  args:
+    chdir: /opt/mastodon/docker/
+
+- name: Gera SECRET_KEY_BASE se não estiver setado nas variáveis
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bundle exec rake secret
+  args:
+    chdir: /opt/mastodon/docker/
+  register: skb
+
+- name: Gera OTP_SECRET se não estiver setado nas variáveis
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bundle exec rake secret
+  args:
+      chdir: /opt/mastodon/docker/
+  register: otp
+
+- name: Gera VAPID_PRIVATE_KEY e VAPID_PUBLIC_KEY se não estiver setado nas variáveis
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bundle exec rake mastodon:webpush:generate_vapid_key
+  args:
+    chdir: /opt/mastodon/docker/
+  register: vpd
+
+- name: Gera VAPID_PRIVATE_KEY de forma separada
+  ansible.builtin.set_fact:
+    secret_key_base: "{{ skb.stdout }}"
+    otp_secret: "{{ otp.stdout }}"
+    vapid_private_key: "{{ vpd.stdout_lines[0] | regex_search('(?<==).+') }}"
+    vapid_public_key: "{{ vpd.stdout_lines[1] | regex_search('(?<==).+') }}"
+
+- name: Debug das chaves
+  ansible.builtin.debug:
+    msg:
+    - "SECRET_KEY_BASE: {{ secret_key_base }}"
+    - "OTP_SECRET: {{ otp_secret }}"
+    - "VAPID_PRIVATE_KEY: {{ vapid_private_key }}"
+    - "VAPID_PRIVATE_KEY: {{ vapid_public_key }}"
+
+- name: Cria o banco e todas as estruturas necessárias para o funcionamento
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bundle exec rake db:migrate
+  args:
+    chdir: /opt/mastodon/docker/
+
+- name: Checa se usuário mastodoncio existe na instância
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bin/tootctl accounts refresh mastodoncio --dry-run
+  args:
+    chdir: /opt/mastodon/docker/
+  ignore_errors: true
+  register: masto_existe
+
+- name: Checa se usuário adminho existe na instância
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bin/tootctl accounts refresh adminho --dry-run
+  args:
+    chdir: /opt/mastodon/docker/
+  ignore_errors: true
+  register: adminho_existe
+
+- name: Cria usuário mastodoncio (Owner) na instância
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bin/tootctl accounts create mastodoncio --email mastodoncio@duck.com --confirmed --role Owner --force
+  args:
+    chdir: /opt/mastodon/docker/
+  register: masto_pw
+  when: masto_existe is failed
+
+- name: Cria usuário adminho (Admin) na instância
+  ansible.builtin.command:
+    cmd: docker compose run --rm shell bin/tootctl accounts create adminho --email adminho@duck.com --confirmed --role Admin --force
+  args:
+    chdir: /opt/mastodon/docker/
+  register: admin_pw
+  when: adminho_existe is failed
+
+- name: Debug das senhas
+  ansible.builtin.debug:
+    msg:
+    - "Owner: {{ masto_pw.stdout_lines }}"
+    - "Admin: {{ admin_pw.stdout_lines }}"
+  when:
+  - masto_pw is changed
+  - admin_pw is changed
+
+- name: Inicia os containers do Mastodon
+  ansible.builtin.command:
+    cmd: docker compose up -d
+  args:
+    chdir: /opt/mastodon/docker/
