@@ -1,0 +1,8 @@
+---
+- name: Instalação do Nginx
+  ansible.builtin.include_tasks: 
+    file: "{{ task }}"
+  with_items:
+    - nginx_base.yml
+  loop_control:
+    loop_var: task

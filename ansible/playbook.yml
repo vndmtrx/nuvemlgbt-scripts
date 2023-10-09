@@ -6,3 +6,4 @@
     - sistema_base
     - docker
     - mastodon
+    - nginx

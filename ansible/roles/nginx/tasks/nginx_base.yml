@@ -1,0 +1,54 @@
+---
+- name: Cria as pastas necessárias para funcionamento do Nginx
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: Yes
+    mode: 0755
+  with_items:
+    - "/opt/nginx"
+    - "/opt/nginx/docker"
+    - "/opt/nginx/conf"
+    - "/opt/nginx/conf/vhost"
+    - "/opt/nginx/conf/certs"
+    - "/opt/nginx/logs"
+
+- name: Copia o docker-compose para subir o Nginx
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/nginx/docker/{{ item }}"
+    mode: 0644
+  with_items:
+    - docker-compose.yml
+
+- name: Copia os arquivos de configuração para o Nginx
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/nginx/conf/{{ item }}"
+    mode: 0644
+  with_items:
+    - nginx.conf
+
+- name: Copia os arquivos de vhost para o Nginx
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/nginx/conf/vhost/{{ item }}"
+    mode: 0644
+  with_items:
+    - default.conf
+    - mastodon.conf
+
+- name: Copia o certificado autoassinado para o Nginx
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/nginx/conf/certs/{{ item }}"
+    mode: 0644
+  with_items:
+    - nginx.crt.pem
+    - nginx.key.pem
+
+- name: Inicia o container do Nginx
+  ansible.builtin.command:
+    cmd: docker compose up -d
+  args:
+    chdir: /opt/nginx/docker/
