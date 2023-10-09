@@ -13,10 +13,10 @@ MSG
 Vagrant.configure("2") do |vps|
   vps.vm.box = "debian/bullseye64"
   vps.vm.hostname = "nuvemlgbt-vagrant-docker"
-  vps.vm.network "forwarded_port", guest: 9090, host: 9090
+  vps.vm.network "private_network", :ip => "192.168.56.10", :adapter => 2
   vps.vm.provider "virtualbox" do |v|
     v.memory = 4096
-    v.cpus = 2
+    v.cpus = 4
     v.default_nic_type = "virtio"
     v.customize ["modifyvm", :id, "--natnet1", "10.254.0.0/16"]
   end
