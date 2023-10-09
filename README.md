@@ -4,7 +4,11 @@ Este repositório dispõe de um playbook Ansible e um script Vagrant para subir 
 
 ## Configurações da instalação
 
+Em breve...
+
 ### Opiniões assumidas sobre algumas configurações
+
+Tenho várias, vou postar em breve tb...
 
 Instalação do docker community do Ansible Galaxy
 
