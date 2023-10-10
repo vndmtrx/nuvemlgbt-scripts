@@ -73,7 +73,7 @@ services:
       - internal_network
 
   website:
-    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    image: "docker.io/yakumosaki/glitch-soc:${MASTODON_VERSION}"
     container_name: mastodon_website
     env_file: 
       - application.env
@@ -99,7 +99,7 @@ services:
       - config:/opt/mastodon/config
        
   streaming:
-    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    image: "docker.io/yakumosaki/glitch-soc:${MASTODON_VERSION}"
     container_name: mastodon_streaming
     env_file: 
       - application.env
@@ -127,7 +127,7 @@ services:
       - config:/opt/mastodon/config
 
   sidekiq:
-    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    image: "docker.io/yakumosaki/glitch-soc:${MASTODON_VERSION}"
     container_name: mastodon_sidekiq
     env_file: 
       - application.env
@@ -154,7 +154,7 @@ services:
       - config:/opt/mastodon/config
 
   shell:
-    image: "docker.io/tootsuite/mastodon:${MASTODON_VERSION}"
+    image: "docker.io/yakumosaki/glitch-soc:${MASTODON_VERSION}"
     env_file: 
       - application.env
       - database.env
